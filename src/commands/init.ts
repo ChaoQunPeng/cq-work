@@ -18,11 +18,14 @@ type BaseTemplateEntry = {
   createWhenMissing?: boolean;
 };
 
-type InitOptions = {
-  projectName?: string;
+export type FrameworkOptions = {
   templateRepo: string;
   cacheDir?: string;
   refreshTemplate?: boolean;
+};
+
+type InitOptions = FrameworkOptions & {
+  projectName?: string;
 };
 
 type AppNameAnswer = {
@@ -48,7 +51,13 @@ export async function runInitCommand(options: InitOptions): Promise<void> {
   console.log(`Next: cd ${projectName}`);
 }
 
-async function ensureFrameworkRepo(options: InitOptions): Promise<string> {
+/**
+ * 获取本地模板仓库：首次使用时 clone，要求刷新时执行 fast-forward pull。
+ * init 和 add app 共享同一缓存位置，避免重复下载完整模板仓库。
+ */
+export async function ensureFrameworkRepo(
+  options: FrameworkOptions,
+): Promise<string> {
   const frameworkDir =
     options.cacheDir ?? path.join(homedir(), ".cq-work", "cq-framework");
 
@@ -160,7 +169,8 @@ async function copyBaseProjectFiles(
   }
 }
 
-async function readAppTemplates(frameworkDir: string): Promise<string[]> {
+/** 读取框架仓库 apps 目录下可供用户选择的模板名称。 */
+export async function readAppTemplates(frameworkDir: string): Promise<string[]> {
   const appsDir = path.join(frameworkDir, "apps");
 
   if (!(await fs.pathExists(appsDir))) {
@@ -180,7 +190,8 @@ async function readAppTemplates(frameworkDir: string): Promise<string[]> {
   return templates;
 }
 
-async function selectAppTemplates(templates: string[]): Promise<string[]> {
+/** 通过多选交互让用户决定本次需要加入的 app 模板。 */
+export async function selectAppTemplates(templates: string[]): Promise<string[]> {
   const answer = await inquirer.prompt<{ selectedTemplates: string[] }>([
     {
       type: "checkbox",
@@ -199,7 +210,8 @@ async function selectAppTemplates(templates: string[]): Promise<string[]> {
   return answer.selectedTemplates;
 }
 
-async function promptAppNames(
+/** 为每个选中模板收集业务项目内使用的 app 名称。 */
+export async function promptAppNames(
   selectedTemplates: string[],
 ): Promise<Map<string, string>> {
   const questions = selectedTemplates.map((template) => ({
@@ -227,7 +239,11 @@ async function promptAppNames(
   return appNames;
 }
 
-async function copySelectedApps(
+/**
+ * 将选中的框架 app 模板复制到业务项目，并同步业务 app 的包名。
+ * init 与 add 共用这条规则，保证首次创建和后续补充 app 的结果一致。
+ */
+export async function copySelectedApps(
   frameworkDir: string,
   targetDir: string,
   appNames: Map<string, string>,

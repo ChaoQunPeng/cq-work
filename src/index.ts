@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
+import { runAddAppCommand } from "./commands/add.js";
 import { runInitCommand } from "./commands/init.js";
 
 const program = new Command();
@@ -16,7 +17,7 @@ program
   .description("Initialize a new business project")
   .option(
     "--template-repo <url>",
-    "template repository url",
+    "template repository url used when creating cache",
     "https://github.com/ChaoQunPeng/cq-framework",
   )
   .option("--cache-dir <path>", "local cq-framework cache directory")
@@ -30,10 +31,38 @@ program
     }
   });
 
+// add app 只向当前业务项目补充 app，具体的仓库同步和模板复制由命令模块处理。
+const addCommand = program
+  .command("add")
+  .description("Add resources to an existing business project");
+
+addCommand
+  .command("app")
+  .description("Add apps from the cq-framework repository")
+  .option(
+    "--template-repo <url>",
+    "template repository url used when creating cache",
+    "https://github.com/ChaoQunPeng/cq-framework",
+  )
+  .option("--cache-dir <path>", "local cq-framework cache directory")
+  .action(async (options: AddAppCommandOptions) => {
+    try {
+      await runAddAppCommand(options);
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      process.exitCode = 1;
+    }
+  });
+
 program.parseAsync();
 
 type InitCommandOptions = {
   templateRepo: string;
   cacheDir?: string;
   refreshTemplate?: boolean;
+};
+
+type AddAppCommandOptions = {
+  templateRepo: string;
+  cacheDir?: string;
 };
