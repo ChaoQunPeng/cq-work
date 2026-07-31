@@ -1,15 +1,24 @@
 #!/usr/bin/env node
 
+import { createRequire } from "node:module";
 import { Command } from "commander";
 import { runAddAppCommand } from "./commands/add.js";
 import { runInitCommand } from "./commands/init.js";
+
+type PackageMetadata = {
+  version: string;
+};
+
+// CLI 版本统一取自 npm 包元数据，避免发布时源码版本与 package.json 不一致。
+const require = createRequire(import.meta.url);
+const packageMetadata = require("../package.json") as PackageMetadata;
 
 const program = new Command();
 
 program
   .name("cq-work")
   .description("Initialize personal workspaces from cq-framework templates.")
-  .version("1.0.0");
+  .version(packageMetadata.version);
 
 program
   .command("init")
